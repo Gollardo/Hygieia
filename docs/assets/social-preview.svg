@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+  <title id="title">Hygieia social preview</title>
+  <desc id="description">Hygieia brand mark with the words Native macOS disk explorer and three product qualities.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05080c"/>
+      <stop offset="0.58" stop-color="#0a1119"/>
+      <stop offset="1" stop-color="#111923"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(210 112) rotate(38) scale(650 430)">
+      <stop offset="0" stop-color="#274c78" stop-opacity="0.72"/>
+      <stop offset="0.58" stop-color="#16283e" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#101923" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#78a9ff" stop-opacity="0.75"/>
+      <stop offset="0.55" stop-color="#4dd8b0" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#ff6b63" stop-opacity="0.12"/>
+    </linearGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="22" stdDeviation="28" flood-color="#000000" flood-opacity="0.46"/>
+    </filter>
+    <clipPath id="markClip">
+      <rect x="108" y="174" width="260" height="260" rx="64"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#background)"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+  <circle cx="1170" cy="54" r="250" fill="#78a9ff" opacity="0.035"/>
+  <circle cx="1220" cy="596" r="330" fill="#4dd8b0" opacity="0.028"/>
+
+  <g opacity="0.32" fill="#78a9ff">
+    <circle cx="72" cy="92" r="2"/><circle cx="194" cy="70" r="1.5"/><circle cx="315" cy="105" r="2.4"/>
+    <circle cx="92" cy="526" r="1.8"/><circle cx="252" cy="568" r="2.2"/><circle cx="386" cy="532" r="1.4"/>
+    <circle cx="1090" cy="94" r="1.6"/><circle cx="1204" cy="172" r="2.1"/><circle cx="1136" cy="544" r="1.8"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="108" y="174" width="260" height="260" rx="64" fill="#090d12" stroke="#26384d" stroke-width="2"/>
+    <image href="social-preview-mark.png" x="108" y="174" width="260" height="260" preserveAspectRatio="xMidYMid slice" clip-path="url(#markClip)"/>
+  </g>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="430" y="254" fill="#f4f7fb" font-size="92" font-weight="760" letter-spacing="-3">Hygieia</text>
+    <text x="435" y="321" fill="#78a9ff" font-size="30" font-weight="700" letter-spacing="3.7">NATIVE MACOS DISK EXPLORER</text>
+    <text x="435" y="387" fill="#c9d2dc" font-size="27" font-weight="540">Scan clearly</text>
+    <circle cx="613" cy="378" r="4.5" fill="#4dd8b0"/>
+    <text x="636" y="387" fill="#c9d2dc" font-size="27" font-weight="540">Explore spatially</text>
+    <circle cx="875" cy="378" r="4.5" fill="#ff6b63"/>
+    <text x="898" y="387" fill="#c9d2dc" font-size="27" font-weight="540">Clean up safely</text>
+  </g>
+
+  <rect x="435" y="431" width="650" height="2" rx="1" fill="url(#rule)"/>
+  <text x="435" y="478" fill="#7f8c9b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" font-weight="550">See the space inside your Mac.</text>
+</svg>

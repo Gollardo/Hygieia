@@ -1,0 +1,36 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift Package Manager
+.build/
+Packages/
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+
+# Xcode build output
+build/
+DerivedData/
+*.xcarchive
+*.dSYM
+*.dSYM.zip
+*.ipa
+
+# Xcode local user state (keep shared schemes/settings tracked)
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Local tooling and temporary files
+.idea/
+*.swp
+*.tmp
+*.log
+
+# Do not ignore Package.resolved, *.xcodeproj, *.xcworkspace, xcshareddata,
+# shared schemes, or other reproducibility-critical project settings.

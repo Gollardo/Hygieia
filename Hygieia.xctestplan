@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "F0D734BB-09B8-45F2-9FE6-0B8349B6DD0A",
+      "name" : "Default",
+      "options" : {
+      }
+    }
+  ],
+  "defaultOptions" : {
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Hygieia.xcodeproj",
+        "identifier" : "A60000000000000000000002",
+        "name" : "HygieiaAppTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Hygieia.xcodeproj",
+        "identifier" : "A60000000000000000000003",
+        "name" : "HygieiaAppUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
