@@ -22,8 +22,9 @@ make a path-based macOS Trash request atomic.
 - Symbolic links are never traversed by the scanner or target validator.
 - A Trash target must be eligible for the current complete snapshot and match
   the scanned root, ancestor, and leaf identity immediately before the request.
-- Successful file actions invalidate the old snapshot and require a complete
-  selected-root rescan.
+- Successful receipt-confirmed file actions invalidate the old snapshot and
+  reconcile a new in-memory snapshot. If reconciliation cannot be proven safe,
+  Hygieia falls back to one complete selected-root rescan.
 - The short time-of-check/time-of-use window between final validation and the
   system Trash API remains a documented residual risk.
 - Full Disk Access coverage, removable/read-only volumes, signed sandbox Trash,

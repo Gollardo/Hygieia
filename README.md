@@ -23,8 +23,13 @@ Field**: a spatial view of where disk space is going.
 > Hygieia `0.2.0` is an early source preview for Apple Silicon Macs. Core,
 > scanner, app, visualization, and identity-validated file-action code are
 > present, but signed sandbox, Finder/Trash, VoiceOver, Full Disk Access,
-> performance, packaging, and notarization gates are not complete. There is no
-> downloadable production release yet.
+> performance, packaging, and notarization gates are not complete. Check the
+> Releases page for the currently published artifacts and their verification
+> notes.
+
+## Download and installation
+
+Download Hygieia only from the project's [GitHub Releases](https://github.com/Gollardo/Hygieia/releases) page. Each release provides its own installation and verification notes; until a signed, notarized artifact is published, use the source-preview instructions below.
 
 ## Why Hygieia
 
@@ -37,8 +42,9 @@ Field**: a spatial view of where disk space is going.
   silently presented as complete knowledge.
 - **Cleanup is deliberately hard to trigger.** Hygieia has no permanent-delete
   operation. Trash targets are checked against snapshot identity immediately
-  before the system request, and a successful action requires a full-root
-  rescan.
+  before the system request. Receipt-confirmed moves are reconciled into a new
+  in-memory snapshot; Hygieia falls back to one full-root rescan if that
+  reconciliation cannot be proven safe.
 - **It is native by design.** SwiftUI, focused AppKit integration, Swift
   Concurrency, Foundation, and Darwin APIs keep the app close to macOS.
 
@@ -103,8 +109,8 @@ blocks are not deduplicated.
 - typed eligibility denials for root, visible root, virtual, stale, partial,
   incomplete, or identity-unknown targets;
 - no-follow identity-chain validation for root, ancestors, and leaf;
-- explicit stale state followed by a complete selected-root rescan after a
-  successful action.
+- receipt-confirmed in-memory reconciliation after a successful action, with a
+  complete selected-root rescan only as the fail-closed fallback.
 
 The path-based macOS Trash API still leaves a short time-of-check/time-of-use
 window after validation. This residual risk and all open manual gates are
