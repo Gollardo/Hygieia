@@ -1181,6 +1181,69 @@ final class ScanFeatureModel {
                 message: "\(moved.count) item\(moved.count == 1 ? " was" : "s were") moved to Trash. The remaining marked items were not moved."
             )
         }
+        fileActionPhase = .refreshingAfterTrash(.init(root: moved[0].target.node, generation: generation))
+        phase = .scanning
+        reconcileKnownTrashMoves(
+            result: displayedResult.result,
+            movedRoots: moved.map(\.target.node),
+            generation: generation,
+            preservesFileActionNotice: failure != nil
+        )
+    }
+
+    /// A receipt-confirmed Trash move is the one case where the app can safely
+    /// derive a replacement snapshot without rereading the filesystem. Any
+    /// inability to prove the rebuild falls back to the established full scan.
+    private func reconcileKnownTrashMoves(
+        result: ScanResult,
+        movedRoots: [NodeID],
+        generation: UInt64,
+        preservesFileActionNotice: Bool
+    ) {
+        fileActionTask?.cancel()
+        fileActionTask = Task { [weak self, result, movedRoots] in
+            do {
+                let reconciliation = try await Task.detached(priority: .userInitiated) {
+                    try KnownDeletionReconciler.reconcile(tree: result.tree, removing: movedRoots)
+                }.value
+                guard !Task.isCancelled else { return }
+                self?.receiveKnownDeletionReconciliation(reconciliation, basedOn: result, generation: generation)
+            } catch {
+                guard !Task.isCancelled else { return }
+                self?.fallbackToFullRefreshAfterReconciliationFailure(
+                    result: result,
+                    generation: generation,
+                    preservesFileActionNotice: preservesFileActionNotice
+                )
+            }
+        }
+    }
+
+    private func receiveKnownDeletionReconciliation(
+        _ reconciliation: KnownDeletionReconciliation,
+        basedOn result: ScanResult,
+        generation: UInt64
+    ) {
+        guard generation == self.generation else { return }
+        let replacement = ScanResult(
+            rootURL: result.rootURL,
+            tree: reconciliation.tree,
+            completion: .complete,
+            accounting: result.accounting,
+            progress: result.progress,
+            issues: result.issues,
+            startedAt: result.startedAt,
+            finishedAt: Date()
+        )
+        receive(result: replacement, generation: generation)
+    }
+
+    private func fallbackToFullRefreshAfterReconciliationFailure(
+        result: ScanResult,
+        generation: UInt64,
+        preservesFileActionNotice: Bool
+    ) {
+        guard generation == self.generation else { return }
         guard let lease = folderLease else {
             fileActionPhase = .failed(.init(
                 title: "Refresh unavailable",
@@ -1188,13 +1251,12 @@ final class ScanFeatureModel {
             ))
             return
         }
-        fileActionPhase = .refreshingAfterTrash(.init(root: moved[0].target.node, generation: generation))
         start(
-            selection: .init(url: displayedResult.result.rootURL, lease: lease),
+            selection: .init(url: result.rootURL, lease: lease),
             keepingPreviousResult: true,
             replacesLease: false,
             previousFreshness: .staleAfterFileAction,
-            preservesFileActionNotice: failure != nil
+            preservesFileActionNotice: preservesFileActionNotice
         )
     }
 

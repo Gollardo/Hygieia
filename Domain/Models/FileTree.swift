@@ -171,6 +171,13 @@ public struct FileTree: Sendable {
 
     public func identity(for id: NodeID) -> FileIdentity? { identities.identity(for: id) }
 
+    /// Returns the accounting group for a node when it is a tracked hard link.
+    /// The group is snapshot-local, just like the node ID.
+    public func hardLinkGroup(for id: NodeID) -> HardLinkGroup? {
+        guard let groupID = hardLinks.groupID(for: id) else { return nil }
+        return hardLinks.group(for: groupID)
+    }
+
     public subscript(id: NodeID) -> FileNode {
         precondition(id.isValid && Int(id.rawValue) < nodes.count, "Invalid snapshot-local NodeID")
         return nodes[Int(id.rawValue)]

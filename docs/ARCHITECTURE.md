@@ -224,7 +224,7 @@ App adapters
 
 Feature layer строит target только для real `NodeID` от original Powerbox root URL и snapshot parent/name/identity chain. Validator применяет `lstat` к root, каждому ancestor и leaf, не следует symlink, а Trash adapter повторяет validation после confirmation. Joined/string path не является authority.
 
-Permanent delete не имеет protocol/API. Trash success требует system URL mapping. Одиночные и явно подтверждённые marked batches выполняют per-item validation и system receipt; batch последователен, не атомарен и останавливается на первой ошибке. После terminal batch immutable tree не патчится: все успешно moved roots получают stale/invalidation overlay, затем запускается один полный selected-root rescan. Failed/cancelled refresh оставляет old snapshot явно stale и блокирует следующую Trash. Targeted reconciliation остаётся M9. Правила batch определяет ADR-0006.
+Permanent delete не имеет protocol/API. Trash success требует system URL mapping. Одиночные и явно подтверждённые marked batches выполняют per-item validation и system receipt; batch последователен, не атомарен и останавливается на первой ошибке. После terminal batch receipt-confirmed, non-overlapping moved roots сначала проходят через отдельную pure in-memory reconciliation в новый immutable snapshot; published tree не мутируется. Она пересобирает snapshot-local IDs, links, names, identities, totals и hard-link accounting, валидирует дерево и публикует его атомарно. Любая неопределённость или invariant failure оставляет old snapshot stale и запускает один полный selected-root rescan; это не общий механизм external changes. Unknown filesystem changes, FSEvents и targeted rescans остаются M9. Правила batch определяют ADR-0006 и ADR-0007.
 
 ## 12. Persistence strategy
 

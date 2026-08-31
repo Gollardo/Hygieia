@@ -364,7 +364,7 @@ final class ScanFeatureModelTests: XCTestCase {
         XCTAssertFalse(model.canGoForward)
     }
 
-    func testMarkedItemsMoveSequentiallyThenStartOneRefresh() async throws {
+    func testMarkedItemsMoveSequentiallyThenReconcileWithoutScannerRefresh() async throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "hygieia-batch-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -400,16 +400,16 @@ final class ScanFeatureModelTests: XCTestCase {
         model.prepareMarkedItemsForTrash()
         await waitUntil { model.markedTrashConfirmation != nil }
         model.confirmMoveMarkedItemsToTrash()
-        await waitUntil { model.phase == .completed && scanner.startCount == 2 }
+        await waitUntil { model.phase == .completed && scanner.startCount == 1 && model.lastFileActionStatus != nil }
 
         let trashCallCount = await trash.callCount()
         XCTAssertEqual(trashCallCount, 2)
-        XCTAssertEqual(scanner.startCount, 2)
+        XCTAssertEqual(scanner.startCount, 1)
         XCTAssertEqual(model.markedTrashCount, 0)
         XCTAssertFalse(model.hasInvalidatedFileActions)
     }
 
-    func testMarkedBatchStopsAfterFailureAndRefreshesOnce() async throws {
+    func testMarkedBatchStopsAfterFailureAndReconcilesSuccessfulMoves() async throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "hygieia-batch-failure-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -438,11 +438,11 @@ final class ScanFeatureModelTests: XCTestCase {
         model.prepareMarkedItemsForTrash()
         await waitUntil { model.markedTrashConfirmation != nil }
         model.confirmMoveMarkedItemsToTrash()
-        await waitUntil { model.phase == .completed && scanner.startCount == 2 }
+        await waitUntil { model.phase == .completed && scanner.startCount == 1 && model.lastFileActionStatus != nil }
 
         let attemptCount = await trash.callCount()
         XCTAssertEqual(attemptCount, 2)
-        XCTAssertEqual(scanner.startCount, 2)
+        XCTAssertEqual(scanner.startCount, 1)
         XCTAssertEqual(model.fileActionNotice?.title, "Trash batch stopped")
         XCTAssertEqual(model.markedTrashCount, 0)
     }

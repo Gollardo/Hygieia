@@ -25,5 +25,6 @@ let package = Package(
         .executableTarget(name: "HygieiaVisualizationBenchmarks", dependencies: ["HygieiaDomain", "HygieiaVisualization"], path: "VisualizationBenchmarks"),
         .testTarget(name: "VisualizationTests", dependencies: ["HygieiaDomain", "HygieiaVisualization"], path: "Tests/VisualizationTests"),
         .testTarget(name: "FileOperationsTests", dependencies: ["HygieiaDomain", "HygieiaFileOperations"], path: "Tests/FileOperationsTests"),
+        .testTarget(name: "ScannerTests", dependencies: ["HygieiaDomain", "HygieiaFoundationScanner"], path: "Tests/ScannerTests"),
     ]
 )

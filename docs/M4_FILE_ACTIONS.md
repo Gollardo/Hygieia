@@ -9,7 +9,7 @@ M4 добавляет две намеренно узкие операции на
 - **Show in Finder**;
 - **Move to Trash**.
 
-Permanent delete, Empty Trash и автоматическая очистка не появляются ни в UI, ни в protocol surface. Marked Trash batches добавлены ADR-0006: они остаются window-local, sequential и identity-validated, а после terminal batch делают один full-root refresh.
+Permanent delete, Empty Trash и автоматическая очистка не появляются ни в UI, ни в protocol surface. Marked Trash batches добавлены ADR-0006: они остаются window-local, sequential и identity-validated, а после terminal batch используют receipt-confirmed reconciliation с одним full-root fallback по ADR-0007.
 
 ```text
 immutable FileTree + snapshot-local selection + original selected-root URL
@@ -348,16 +348,16 @@ Success существует только после системного receip
 3. Перенести selection на parent moved node; navigation root не меняется, поскольку current visual root protected.
 4. Dim/disable moved subtree в chart/list/details, но не удалять его из `FileTree` и не перераспределять old totals.
 5. Показать status «Moved to Trash — refreshing scan» без claim о freed bytes.
-6. Автоматически запустить полный rescan original selected root, сохраняя folder access lease.
+6. Построить отдельный immutable snapshot из known moved roots по ADR-0007. Если reconciliation не может доказательно завершиться, автоматически запустить один полный rescan original selected root, сохраняя folder access lease.
 7. Перед публикацией complete new snapshot UI атомарно отбрасывает old selection, navigation history, rows, chart projection/layout, marked items и invalidation; только затем новый tree получает собственные snapshot-local IDs и снова разрешает Trash. UI entry points дополнительно fail closed для ID, отсутствующего в текущем tree.
 
-M4 намеренно не делает targeted tree surgery. Текущий scanner умеет строить whole-root immutable snapshot; безопасный subtree merge/reconciliation относится к M9. Это дороже, но сохраняет source-of-truth и не притворяется инкрементальным update.
+M4 не делает arbitrary tree surgery: reconciliation ограничена receipt-confirmed known deletions и строит новый whole snapshot, не mutating published tree. Общий subtree merge/reconciliation для неизвестных external changes остаётся M9.
 
 Если post-action rescan failed/cancelled:
 
 - old tree остаётся `.staleAfterFileAction` с invalidation overlay;
 - cancelled partial result не заменяет его автоматически;
-- Trash остаётся disabled до successful full rescan или выбора другой root;
+- Trash остаётся disabled до successful reconciliation/full rescan или выбора другой root;
 - Finder для unaffected real node может работать через live validation;
 - UI предлагает **Rescan** и честно сообщает, что displayed sizes устарели.
 
@@ -553,7 +553,7 @@ After first accepted baseline, >10% memory or >20% validation regression on the 
 2. `HygieiaFileOperations` target, action types, policy and no-follow resolver tests.
 3. AppKit Finder adapter, feature state and Finder UI/commands.
 4. Trash adapter with repeated validation, confirmation and fakes.
-5. Invalidation overlay and distinct full-root action-refresh flow.
+5. Invalidation overlay and receipt-confirmed action reconciliation with full-root fallback.
 6. Entitlement change, signed sandbox integration gates and accessibility/UI tests.
 7. Documentation reconciliation and accepted M4 evidence report.
 
@@ -572,7 +572,7 @@ M4 принят, когда:
 - symlink Trash перемещает link, target остаётся;
 - success существует только после system mapping/receipt;
 - failed Trash не меняет tree/totals как success;
-- successful Trash создаёт stale invalidation и ровно один full-root refresh;
+- successful Trash создаёт stale invalidation и atomic known-action reconciliation; failure thereof запускает ровно один full-root refresh;
 - failed/cancelled action refresh остаётся честно stale и блокирует следующую Trash;
 - read-write sandbox entitlement проверен в signed app;
 - unit/app/UI checks и manual Finder/Trash/symlink gates выполнены;
@@ -585,7 +585,7 @@ M4 принят, когда:
 - достаточно ли `NSWorkspace.recycle` для всех будущих local volume classes;
 - какой critical-path policy нужен перед Whole Mac M5;
 - нужен ли Restore/Undo UX после product/safety review;
-- как M9 atomic reconciliation заменит M4 full-root refresh;
+- как M9 generalized reconciliation расширит узкий M4 known-action path;
 - сохранять ли visual root/selection между snapshots по identity chain;
 - нужны ли birthtime/file-resource-identifier evidence сверх `(device, inode)` в M7;
 - разрешать ли Trash current visual root в более зрелом UX.

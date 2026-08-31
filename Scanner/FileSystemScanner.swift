@@ -126,6 +126,26 @@ public struct ScanResult: Sendable {
     public let issues: ScanIssueSummary
     public let startedAt: Date
     public let finishedAt: Date
+
+    public init(
+        rootURL: URL,
+        tree: FileTree,
+        completion: ScanCompletion,
+        accounting: ScanAccountingPolicy,
+        progress: ScanProgress,
+        issues: ScanIssueSummary,
+        startedAt: Date,
+        finishedAt: Date
+    ) {
+        self.rootURL = rootURL
+        self.tree = tree
+        self.completion = completion
+        self.accounting = accounting
+        self.progress = progress
+        self.issues = issues
+        self.startedAt = startedAt
+        self.finishedAt = finishedAt
+    }
 }
 
 public enum ScanError: Error, Equatable, Sendable {

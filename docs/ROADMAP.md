@@ -66,21 +66,21 @@ Roadmap описывает последовательность доказате
 
 ## M4 — File Actions
 
-Точный реализуемый контракт: [`M4_FILE_ACTIONS.md`](M4_FILE_ACTIONS.md), архитектурное решение: ADR-0005.
+Точный реализуемый контракт: [`M4_FILE_ACTIONS.md`](M4_FILE_ACTIONS.md), архитектурные решения: ADR-0005, ADR-0006 и ADR-0007.
 
-**Текущий статус:** реализация присутствует в Core/App: identity sidecar, eligibility, no-follow validation, Finder/Trash adapters, single и marked-list confirmation flows, stale invalidation и full-root refresh. Signed sandbox Finder/Trash, symlink-race, read-only-volume, VoiceOver и performance acceptance gates остаются открыты.
+**Текущий статус:** реализация присутствует в Core/App: identity sidecar, eligibility, no-follow validation, Finder/Trash adapters, single и marked-list confirmation flows, stale invalidation и receipt-confirmed in-memory reconciliation с full-root fallback. Signed sandbox Finder/Trash, symlink-race, read-only-volume, VoiceOver и performance acceptance gates остаются открыты.
 
 **Цель:** безопасно связать выбранный node с Finder и Move to Trash.
 
-**Scope:** compact per-node identity sidecar; `HygieiaFileOperations`; identity-chain/no-follow path validation; concrete Finder/Trash adapters; eligibility/confirmation UX; single-action state; stale invalidation overlay; полный selected-root refresh после успеха; read-write Powerbox entitlement.
+**Scope:** compact per-node identity sidecar; `HygieiaFileOperations`; identity-chain/no-follow path validation; concrete Finder/Trash adapters; eligibility/confirmation UX; single-action state; stale invalidation overlay; known-action immutable reconciliation after success with full selected-root refresh fallback; read-write Powerbox entitlement.
 
 **Deliverables:** Show in Finder; confirmed Move to Trash; protected-node policy с typed denial; bounded in-memory status; signed sandbox entitlement evidence; identity memory baseline; documented stale/full-rescan strategy.
 
-**Acceptance criteria:** permanent delete API отсутствует; path начинается от original selected-root URL; root/каждый ancestor/leaf совпадают по no-follow kind и `(device,inode)`; virtual/stale/partial/root/visible-root/incomplete targets защищены; failed operation не меняет snapshot как success; Trash success требует system URL mapping; old tree становится явно stale и заменяется только complete full-root rescan; symlink target остаётся нетронутым.
+**Acceptance criteria:** permanent delete API отсутствует; path начинается от original selected-root URL; root/каждый ancestor/leaf совпадают по no-follow kind и `(device,inode)`; virtual/stale/partial/root/visible-root/incomplete targets защищены; failed operation не меняет snapshot как success; Trash success требует system URL mapping; old tree становится stale и заменяется только complete validated immutable reconciliation либо fallback full-root rescan; symlink target остаётся нетронутым.
 
 **Tests:** identity sidecar/stride/memory; policy matrix; owned temporary resolver fixtures; ancestor/leaf replacement и symlink races; service fakes; stale/missing/denied; cancel confirmation; full-root action refresh; UI/accessibility; manual signed sandbox Finder/Trash/symlink/read-only-volume gates.
 
-**Explicit non-goals:** permanent/secure delete; Empty Trash; Restore/Undo; batch cleanup; privilege escalation/FDA/helper; targeted tree merge/FSEvents; persistent action log; automated recommendations.
+**Explicit non-goals:** permanent/secure delete; Empty Trash; Restore/Undo; batch cleanup; privilege escalation/FDA/helper; arbitrary targeted tree merge/FSEvents; persistent action log; automated recommendations.
 
 ## M5 — Whole Mac Scan
 
