@@ -2,7 +2,7 @@
 
 Статус: рабочая продуктовая гипотеза и behavior contract. Принятая visual direction и component tokens описаны отдельно в [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).
 
-M2 реализовал ограниченный slice: выбор локального scan root, progress/cancel и bounded list с details. M3 добавляет реализованный в коде Sunburst/navigation slice; точные UX/engineering rules находятся в [`M3_SUNBURST_MVP.md`](M3_SUNBURST_MVP.md). Текущий M5a slice перечисляет локальные volumes как entry points, но не обещает Whole Mac coverage, FDA onboarding или persistent access. Lustral Field является presentation transform поверх того же bounded pipeline, а не второй layout truth. Apple Silicon/VoiceOver/Instruments acceptance остаётся отдельным manual gate.
+M2 реализовал ограниченный slice: выбор локального scan root, progress/cancel и bounded list с details. M3 добавляет реализованный в коде Sunburst/navigation slice; точные UX/engineering rules находятся в [`M3_SUNBURST_MVP.md`](M3_SUNBURST_MVP.md). M5 добавляет локальные volumes и Scan This Mac с явным выбором roots, FDA help и ограниченным coverage; persistent access отсутствует. Lustral Field является presentation transform поверх того же bounded pipeline, а не второй layout truth. Apple Silicon/VoiceOver/Instruments acceptance остаётся отдельным manual gate.
 
 ## 1. Продуктовая цель
 
@@ -48,13 +48,13 @@ Hygieia помогает человеку быстро ответить на т�
 - локальные disks/volumes — основной список источников;
 - **Choose a Folder…** — точное ограничение scan root.
 
-Выбор volume открывает системную панель в его root. Отдельное **Scan This Folder** выбирает текущий каталог панели, поэтому пользователь может сканировать сам диск или сначала войти в нужную папку. **Scan This Mac** появится только вместе с Whole Mac orchestration, FDA/coverage semantics и не показывается как disabled promise.
+Выбор volume открывает системную панель в его root. Выбор подтверждается штатной кнопкой панели; Cancel никогда не запускает scan. **Scan This Mac…** в toolbar открывает checklist локальных roots и помощь по FDA согласно [M5_WHOLE_MAC.md](M5_WHOLE_MAC.md).
 
 Empty state содержит короткое описание, последнюю доступную область только если она безопасно доступна, и явную кнопку выбора. Нельзя показывать пустую Sunburst как ошибку или автоматически начинать тяжёлый scan.
 
 ## 4. Выбор folder, volume и Whole Mac
 
-Локальные volumes перечисляются через platform adapter, но scan authority всегда подтверждается системным open panel. Перед стартом пользователь либо выбирает текущий disk/root действием **Scan This Folder**, либо входит в конкретный каталог. UI не восстанавливает authority из строкового path и не пересекает mount boundaries по неявному предположению.
+Локальные volumes перечисляются через platform adapter, но scan authority всегда подтверждается системным open panel. Перед стартом пользователь подтверждает disk/root либо конкретный каталог штатной кнопкой панели. UI не восстанавливает authority из строкового path и не пересекает mount boundaries по неявному предположению.
 
 Whole Mac — не синоним «гарантированно прочитать всё». Flow должен:
 
@@ -64,6 +64,16 @@ Whole Mac — не синоним «гарантированно прочита�
 4. после scan явно показывать пропущенные области/coverage.
 
 Запрос доступа не маскируется под системную необходимость и не блокирует обычный folder scan.
+
+### M5 Whole Mac UX
+
+Внутренние non-removable roots отмечены по умолчанию; внешние — opt-in. Каждый root
+требует собственного системного подтверждения. Ошибка/отмена/другая папка остаются
+видимыми outcomes. Общая сумма не показывается; APFS System/Data и shared storage
+не складываются. **Rescan in Explorer** создаёт свежий single-root snapshot.
+FDA status — **not verified**, Settings/manual route и limited access доступны всегда.
+Stop прекращает очередь; ожидающий OS call назван явно, интерфейс не блокируется.
+Новый экран использует существующие panel/palette/typography без новых animations.
 
 ### M5a coverage UX
 

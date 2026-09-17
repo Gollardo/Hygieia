@@ -127,6 +127,6 @@ final class FileOperationsTests: XCTestCase {
             return Int(lstat(path, &metadata))
         }
         guard result == 0 else { throw POSIXError(.init(rawValue: errno) ?? .EINVAL) }
-        return .init(device: UInt64(metadata.st_dev), inode: UInt64(metadata.st_ino))
+        return .init(device: UInt64(UInt32(bitPattern: metadata.st_dev)), inode: UInt64(metadata.st_ino))
     }
 }

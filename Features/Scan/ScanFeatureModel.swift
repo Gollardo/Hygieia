@@ -185,6 +185,8 @@ struct ScanTimeEstimator: Sendable {
 @Observable
 final class ScanFeatureModel {
     static let rowLimit = 200
+    let wholeMac: WholeMacScanModel
+    var wholeMacPresented = false
 
     private(set) var phase: ScanPhase = .idle
     private(set) var selectedRoot: URL?
@@ -241,6 +243,7 @@ final class ScanFeatureModel {
         finder: any FinderService = AppKitFinderService(),
         trash: any TrashService = AppKitTrashService()
     ) {
+        self.wholeMac = WholeMacScanModel(scanner: scanner, picker: folderPicker, discovery: volumeDiscovery)
         self.scanner = scanner
         self.folderPicker = folderPicker
         self.volumeDiscovery = volumeDiscovery
@@ -251,7 +254,7 @@ final class ScanFeatureModel {
         self.trash = trash
     }
 
-    var canChooseFolder: Bool { !phase.isActive && phase != .choosingFolder }
+    var canChooseFolder: Bool { !phase.isActive && phase != .choosingFolder && !wholeMac.isRunning && !fileActionPhase.isInProgress }
     var canRescan: Bool { selectedRoot != nil && folderLease != nil && canChooseFolder }
     var showsCancel: Bool { phase == .scanning || phase == .cancelling }
     var canCancel: Bool { phase == .scanning }
@@ -362,7 +365,7 @@ final class ScanFeatureModel {
         !markedTrashItems.isEmpty
             && !fileActionPhase.isInProgress
             && displayedResult?.freshness == .current
-            && !phase.isActive
+            && !phase.isActive && !wholeMac.isRunning
     }
 
     func fileActionEligibility(_ action: FileActionKind) -> FileActionEligibility {
@@ -375,7 +378,7 @@ final class ScanFeatureModel {
             scanRoot: displayedResult.result.tree.root,
             visibleRoot: explorer.visibleRoot,
             freshness: actionFreshness(displayedResult.freshness),
-            scanOrRefreshActive: phase.isActive,
+            scanOrRefreshActive: phase.isActive || wholeMac.isRunning,
             identityAvailable: selectedNode.flatMap { displayedResult.result.tree.identity(for: $0) } != nil,
             nodeKind: node?.kind,
             nodeFlags: node?.flags ?? [],
@@ -841,6 +844,7 @@ final class ScanFeatureModel {
     }
 
     func teardown() {
+        wholeMac.teardown()
         volumeDiscoveryGeneration &+= 1
         isDiscoveringVolumes = false
         generation &+= 1

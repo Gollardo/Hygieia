@@ -65,6 +65,9 @@ struct ScanRootView: View {
             }
         }
         .toolbar { toolbarContent }
+        .sheet(isPresented: $model.wholeMacPresented) {
+            WholeMacScanView(model: model.wholeMac, explore: model.chooseVolume)
+        }
         .focusedSceneValue(\.scanCommandActions, model.commandActions)
         .task {
             await model.discoverVolumesIfNeeded()
@@ -137,6 +140,8 @@ struct ScanRootView: View {
             Button("Up", systemImage: "arrow.up") { model.goUp() }
                 .disabled(!model.canGoUp)
 
+            Button("Scan This Mac…", systemImage: "desktopcomputer") { model.wholeMacPresented = true }
+                .disabled(!model.canChooseFolder && !model.wholeMac.isRunning)
             Menu("Choose Source…", systemImage: "externaldrive") {
                 ForEach(model.availableVolumes) { volume in
                     Button("Scan \(volume.name)…") { model.chooseVolume(volume) }
@@ -205,6 +210,8 @@ struct ScanRootView: View {
                 .foregroundStyle(HygieiaPalette.textSecondary)
 
                 Text(title)
+                    .accessibilityLabel(title)
+                    .accessibilityIdentifier("scanStateTitle")
                     .font(.system(size: 38, weight: .semibold, design: .rounded))
                     .foregroundStyle(HygieiaPalette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)

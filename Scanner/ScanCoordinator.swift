@@ -176,7 +176,7 @@ public actor ScanCoordinator {
                 _ = id
                 return
             }
-            if identity.device != rootDevice {
+            if flags.contains(.volumeBoundary) || identity.device != rootDevice {
                 flags.formUnion([.volumeBoundary, .incompleteSubtree])
                 shouldTraverse = false
             } else if !seenDirectories.insert(identity).inserted {

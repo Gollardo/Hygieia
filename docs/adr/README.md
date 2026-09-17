@@ -32,3 +32,5 @@ Date: YYYY-MM-DD
 ```
 
 Workflow: создать `Proposed` ADR до нарушающего архитектуру кода; обсудить/принять; затем обновить `ARCHITECTURE.md` и реализацию. Первый ADR фиксирует исходный native stack.
+
+M5 orchestration and APFS mount policy: [ADR-0009](ADR-0009-whole-mac-orchestration.md).

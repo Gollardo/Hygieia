@@ -1,0 +1,30 @@
+{
+  "environment": "macOS 26.6.2 arm64, Xcode 26.6, SwiftPM debug CLI; serial runs, 1 warmup + 5 measured; background Xcode work may affect timing",
+  "before": {
+    "directories": 401,
+    "files": 4000,
+    "warmup_seconds": 2.613331999978982,
+    "runs_seconds": [
+      0.21957929199561477,
+      0.17492087499704212,
+      0.17608983302488923,
+      0.24035287502920255,
+      0.27317895798478276
+    ],
+    "median_seconds": 0.21957929199561477
+  },
+  "after": {
+    "directories": 401,
+    "files": 4000,
+    "warmup_seconds": 0.7383505000034347,
+    "runs_seconds": [
+      0.17884854198200628,
+      0.17510125000262633,
+      0.1789969159872271,
+      0.17747412499738857,
+      0.17693750001490116
+    ],
+    "median_seconds": 0.17747412499738857
+  },
+  "interpretation": "Small correctness-fixture measurement only; overlapping ranges and cache effects do not establish an improvement or million-node regression bounds."
+}

@@ -1,6 +1,6 @@
 # M5a — Local volume coverage
 
-Status: implemented single-root slice; full M5 and release acceptance remain open.
+Status: implemented single-root slice, extended by [M5_WHOLE_MAC.md](M5_WHOLE_MAC.md) and ADR-0009. See the verification report for remaining platform gates.
 Decision: [ADR-0008](adr/ADR-0008-single-volume-coverage.md), approved implementation scope.
 
 ## Scope
@@ -8,7 +8,7 @@ Decision: [ADR-0008](adr/ADR-0008-single-volume-coverage.md), approved implement
 One explicitly selected local root, one immutable FileTree and the existing
 Explorer. App Sandbox and user-selected read-write entitlements are unchanged.
 There is no database, backend service, migration, persistent bookmark, new dependency,
-FSEvents monitor, FDA switch or multi-root Whole Mac command.
+FSEvents monitor or FDA switch in this slice. Multi-root orchestration is now implemented separately by M5b.
 
 ## User behavior
 
@@ -55,7 +55,7 @@ Source identity comes from the existing compact sidecar; there is no second tree
 or persistent identity claim. Mount identity is not a permanent identifier across
 boots or remounts.
 
-Directory traversal still stops at a different `st_dev`. Symlinks are recorded,
+Directory traversal stops at a different `st_dev`; M5b also compares `f_fsid` for APFS System/Data boundaries. Symlinks are recorded,
 never followed. Hard-link/accounting semantics and the visualization cap are unchanged.
 No capacity value is used to fill gaps in the FileTree or estimate missing bytes.
 
@@ -107,7 +107,7 @@ Verification results and retained renders: [M5_VERIFICATION.md](M5_VERIFICATION.
   VoiceOver/keyboard/Reduce Motion acceptance on supported macOS versions.
 - FDA denied/granted behavior, APFS System/Data/firmlink overlap and root coverage.
 - Memory/lifecycle policy for retaining multiple large snapshots.
-- An accepted multi-root design before implementing Whole Mac orchestration.
+- Multi-root design and implementation are now covered by ADR-0009/M5_WHOLE_MAC.md.
 
 Root validation is point-in-time evidence, not continuous monitoring. A source may
 change after publication; existing action validation is still required. No performance

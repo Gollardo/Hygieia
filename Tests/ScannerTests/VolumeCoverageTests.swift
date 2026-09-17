@@ -24,6 +24,37 @@ final class VolumeCoverageTests: XCTestCase {
         XCTAssertEqual(result.tree.count, 3)
     }
 
+    func testBackendBoundaryFlagStopsSameDeviceDirectoryTraversal() async throws {
+        let coordinator = try makeCoordinator()
+        let claimed = await coordinator.claim()
+        let lease = try XCTUnwrap(claimed)
+        try await coordinator.submit(lease, result: .init(workID: lease.workID, entries: [
+            .init(name: "Data", kind: .directory, logicalSize: 0, allocatedSize: 0,
+                  flags: .volumeBoundary, identity: .init(device: 1, inode: 20)),
+        ]))
+        let next = await coordinator.claim()
+        XCTAssertNil(next)
+        let result = try await coordinator.finish()
+        XCTAssertEqual(result.issues.counts[.volumeBoundary], 1)
+        XCTAssertTrue(result.hasIncompleteCoverage)
+    }
+
+    func testRealSystemDataFirmlinkIsNotTraversedFromSystemRoot() async throws {
+        let dataURL = URL(fileURLWithPath: "/System/Volumes/Data")
+        guard FileManager.default.fileExists(atPath: dataURL.path) else { throw XCTSkip("No System/Data pair") }
+        let backend = FoundationDirectoryBackend()
+        let systemURL = URL(fileURLWithPath: "/")
+        let system = try await backend.inspectRoot(systemURL)
+        // Shallow metadata only: never enumerate Users or read any user file.
+        let systemRead = await backend.readDirectory(.init(workID: 1, directoryURL: systemURL, expectedIdentity: system.identity))
+        let usersFromSystem = try XCTUnwrap(systemRead.entries.first { $0.name == "Users" })
+        XCTAssertTrue(usersFromSystem.flags.contains(.volumeBoundary))
+        let data = try await backend.inspectRoot(dataURL)
+        let dataRead = await backend.readDirectory(.init(workID: 2, directoryURL: dataURL, expectedIdentity: data.identity))
+        let usersFromData = try XCTUnwrap(dataRead.entries.first { $0.name == "Users" })
+        XCTAssertFalse(usersFromData.flags.contains(.volumeBoundary))
+    }
+
     func testPermissionAndMetadataFailuresKeepBoundedSamplesAndIncompleteCoverage() async throws {
         let coordinator = try makeCoordinator(sampleLimit: 1)
         let claimed = await coordinator.claim()

@@ -196,6 +196,11 @@ private func readDirectoryBlocking(
     case .failure(let failure):
         return DirectoryReadResult(workID: request.workID, failure: failure)
     }
+    let parentFileSystem: FileSystemIdentifier
+    switch fileSystemIdentifierBlocking(request.directoryURL, expectedIdentity: request.expectedIdentity) {
+    case .success(let identifier): parentFileSystem = identifier
+    case .failure(let failure): return .init(workID: request.workID, failure: failure)
+    }
     let manager = FileManager.default
     let urls: [URL]
     do {
@@ -215,8 +220,23 @@ private func readDirectoryBlocking(
         case .success(let entry):
             if entry.kind == .directory {
                 if cancellation?.isCancelled == true { return .init(workID: request.workID) }
-                let isPackage = (try? url.resourceValues(forKeys: [.isPackageKey]).isPackage) == true
-                entries.append(isPackage ? entry.addingPackageFlag() : entry)
+                // st_dev can be identical across the APFS System/Data firmlink view.
+                // Check the actual filesystem on a no-follow directory descriptor.
+                guard let identity = entry.identity else {
+                    issues.append(.init(name: entry.name, failure: .metadataReadFailed(code: EIO)))
+                    continue
+                }
+                switch fileSystemIdentifierBlocking(url, expectedIdentity: identity) {
+                case .success(let childFileSystem):
+                    if childFileSystem != parentFileSystem {
+                        entries.append(entry.addingFlags([.volumeBoundary, .incompleteSubtree]))
+                    } else {
+                        let isPackage = (try? url.resourceValues(forKeys: [.isPackageKey]).isPackage) == true
+                        entries.append(isPackage ? entry.addingFlags(.package) : entry)
+                    }
+                case .failure(let failure):
+                    issues.append(.init(name: entry.name, failure: failure))
+                }
             } else {
                 entries.append(entry)
             }
@@ -227,9 +247,9 @@ private func readDirectoryBlocking(
 }
 
 private extension DirectoryEntryRecord {
-    func addingPackageFlag() -> DirectoryEntryRecord {
+    func addingFlags(_ added: NodeFlags) -> DirectoryEntryRecord {
         var nextFlags = flags
-        nextFlags.insert(.package)
+        nextFlags.formUnion(added)
         return DirectoryEntryRecord(
             name: name,
             kind: kind,
@@ -240,6 +260,30 @@ private extension DirectoryEntryRecord {
             reportedLinkCount: reportedLinkCount
         )
     }
+}
+
+private struct FileSystemIdentifier: Equatable {
+    let first: Int32
+    let second: Int32
+}
+
+private func fileSystemIdentifierBlocking(
+    _ url: URL, expectedIdentity: FileIdentity
+) -> Result<FileSystemIdentifier, DirectoryReadFailure> {
+    let descriptor = url.withUnsafeFileSystemRepresentation { path in
+        path.map { open($0, O_EVTONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC) } ?? -1
+    }
+    guard descriptor >= 0 else { return .failure(failure(fromErrno: errno)) }
+    defer { close(descriptor) }
+    var info = stat()
+    guard fstat(descriptor, &info) == 0 else { return .failure(failure(fromErrno: errno)) }
+    guard (info.st_mode & S_IFMT) == S_IFDIR,
+          FileIdentity(device: UInt64(UInt32(bitPattern: info.st_dev)), inode: UInt64(info.st_ino)) == expectedIdentity else {
+        return .failure(.disappeared(code: ESTALE))
+    }
+    var filesystem = statfs()
+    guard fstatfs(descriptor, &filesystem) == 0 else { return .failure(failure(fromErrno: errno)) }
+    return .success(.init(first: filesystem.f_fsid.val.0, second: filesystem.f_fsid.val.1))
 }
 
 private func metadataBlocking(_ url: URL, packageHint: Bool) -> Result<DirectoryEntryRecord, DirectoryReadFailure> {
@@ -270,7 +314,7 @@ private func metadataBlocking(_ url: URL, packageHint: Bool) -> Result<Directory
     if url.lastPathComponent.hasPrefix(".") { flags.insert(.hidden) }
     if kind == .directory, packageHint { flags.insert(.package) }
     let linkCount = UInt32(clamping: UInt64(status.st_nlink))
-    let identity = FileIdentity(device: UInt64(status.st_dev), inode: UInt64(status.st_ino))
+    let identity = FileIdentity(device: UInt64(UInt32(bitPattern: status.st_dev)), inode: UInt64(status.st_ino))
     return .success(DirectoryEntryRecord(name: url.lastPathComponent, kind: kind, logicalSize: sizes.0, allocatedSize: sizes.1, flags: flags, identity: identity, reportedLinkCount: linkCount))
 }
 

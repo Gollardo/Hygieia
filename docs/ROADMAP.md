@@ -84,7 +84,7 @@ Roadmap описывает последовательность доказате
 
 ## M5 — Whole Mac Scan
 
-**Текущий статус:** single-root M5a реализован по [M5_LOCAL_VOLUME_COVERAGE.md](M5_LOCAL_VOLUME_COVERAGE.md) и ADR-0008: local-volume discovery с unknown/error/retry, picker, root identity validation, incomplete/unavailable coverage и отчёт Scope & Coverage. Автоматические проверки покрывают replacement/disappearance и APFS disk-image boundary/read-only scan. Whole Mac orchestration, APFS System/Data policy, FDA onboarding и физический eject/stalled I/O остаются открытыми; полный M5 не закрыт.
+**Текущий статус:** реализация M5 завершена по [M5_WHOLE_MAC.md](M5_WHOLE_MAC.md) и ADR-0009: последовательный Scan This Mac с явными roots, отдельными coverage reports, FDA help, APFS filesystem boundaries и защищённой отменой. Native Release Powerbox и полный flow на собственном APFS-образе проверены; System/Data и controlled detach покрыты real-filesystem тестами. FDA denied/granted и physical removable/eject acceptance остаются открытыми в [M5_VERIFICATION.md](M5_VERIFICATION.md). До этих проверок milestone формально не закрыт.
 
 **Цель:** поддержать понятный scan local volumes/доступного Mac с честным coverage.
 

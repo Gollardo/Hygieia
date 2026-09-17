@@ -72,7 +72,7 @@ private func readStatus(at url: URL, missing: FileActionError) throws -> stat {
 }
 
 private func identity(for status: stat) -> FileIdentity {
-    .init(device: UInt64(status.st_dev), inode: UInt64(status.st_ino))
+    .init(device: UInt64(UInt32(bitPattern: status.st_dev)), inode: UInt64(status.st_ino))
 }
 
 private func kind(for status: stat) -> NodeKind {

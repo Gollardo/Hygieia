@@ -253,3 +253,12 @@ SF Symbols используются для стандартных macOS дейс
 5. оформить ADR, только если решение меняет architectural/dependency boundaries.
 
 Экспериментальная ветка или mock не меняет accepted direction. Новый стиль становится принятым только после явного owner approval; до этого он маркируется как exploration и не заменяет reference assets.
+
+### M5 Whole Mac scope sheet
+
+`WholeMacScanView` uses existing canvas/panel/text tokens, native checkboxes,
+scrollable per-root evidence and a single coral start action. It introduces no
+palette, font, asset or animation. States distinguish planning, authorization,
+scanning/cancellation, excluded/skipped, failure/unavailable and limited results
+with text, not color alone. Long names/paths wrap; unknown sizes are omitted.
+The global notice and scan controls stay visible while root reports scroll.

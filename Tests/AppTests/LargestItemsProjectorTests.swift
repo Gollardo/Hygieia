@@ -140,28 +140,11 @@ final class ScanFeatureModelTests: XCTestCase {
         XCTAssertEqual(picker.prompts, ["Scan"])
     }
 
-    func testCurrentFolderPickerActionDoesNotFallBackToDisplayedParent() {
-        let parent = URL(fileURLWithPath: "/Users/example", isDirectory: true)
-        let downloads = parent.appending(path: "Downloads", directoryHint: .isDirectory)
-
-        XCTAssertEqual(
-            AppKitFolderPicker.resolvedSelectionURL(
-                selectedURL: downloads,
-                currentDirectoryURL: parent,
-                choseCurrentFolder: true,
-                acceptedSelection: false
-            ),
-            downloads
-        )
-        XCTAssertEqual(
-            AppKitFolderPicker.resolvedSelectionURL(
-                selectedURL: nil,
-                currentDirectoryURL: downloads,
-                choseCurrentFolder: true,
-                acceptedSelection: false
-            ),
-            downloads
-        )
+    func testPickerRequiresNativeAcceptanceAndNeverInventsASelection() {
+        let url = URL(fileURLWithPath: "/Users/example/Downloads")
+        XCTAssertNil(AppKitFolderPicker.resolvedSelectionURL(selectedURL: url, acceptedSelection: false))
+        XCTAssertNil(AppKitFolderPicker.resolvedSelectionURL(selectedURL: nil, acceptedSelection: true))
+        XCTAssertEqual(AppKitFolderPicker.resolvedSelectionURL(selectedURL: url, acceptedSelection: true), url)
     }
 
     func testCancelledPickerPreservesIdleStateWithoutStartingScan() async {

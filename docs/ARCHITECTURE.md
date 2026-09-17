@@ -265,7 +265,7 @@ M2 использует App Sandbox и `com.apple.security.files.user-selected.r
 - показывать coverage/ошибки, не изображая неполный результат полным;
 - не пытаться самостоятельно повышать привилегии или обходить protection.
 
-M2 sandbox policy принята ADR-0003 и уточнена для M4 ADR-0005. Открыты final signing/bundle/distribution решения и Whole Mac/FDA policy M5.
+M2 sandbox policy принята ADR-0003 и уточнена для M4 ADR-0005. Открыты final signing/bundle/distribution решения. M5 Whole Mac/FDA policy принята ADR-0009; platform acceptance проверяется отдельно.
 
 ### M5a: single-root coverage and availability
 
@@ -283,7 +283,21 @@ Rescan передаёт `expectedRootIdentity` из предыдущего snaps
 
 Coverage report читает исходный root, device identity, timestamps и bounded issue
 samples из результата. Нового дерева, индекса или guessed FDA state не создаётся.
-Whole Mac orchestration и APFS System/Data overlap policy остаются открытыми.
+### M5b: explicit multi-root orchestration
+
+[ADR-0009](adr/ADR-0009-whole-mac-orchestration.md) и [M5_WHOLE_MAC.md](M5_WHOLE_MAC.md)
+добавляют `WholeMacScanModel` в Features, с теми же scanner/picker/discovery dependencies.
+Один scanner последовательно читает явно авторизованные локальные roots; retained
+reports bounded (64 roots × 20 samples), без объединённого дерева и общей суммы.
+Для исследования отчёт запускает новый single-root Explorer scan. System/Data
+показываются отдельно; внешние volumes opt-in, network/service mounts исключены.
+Foundation проверяет `f_fsid` через no-follow descriptors: APFS firmlinks могут
+иметь тот же `st_dev` на другом filesystem. Boundary flag запрещает enqueue даже
+при одинаковом device. Unknown filesystem metadata fail closed. Идентификаторы
+Darwin `dev_t` сохраняют unsigned bit pattern в scanner и action validator.
+FDA help не выдаёт guessed status и не меняет доступ; только native panel OK даёт
+выбор. Teardown/generation guards отбрасывают late results; stalled I/O не разрешает
+накопление новых scan sessions. Signing/FDA/device acceptance остаётся отдельным gate.
 
 ## 15. Memory и performance strategy
 
