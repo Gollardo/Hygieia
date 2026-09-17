@@ -186,13 +186,14 @@ Hygieia follows evidence-based milestones rather than calendar promises. M1
 scanner/Core, M2 app shell, M3 Sunburst, and M4 file-action implementations are
 present in source, while their named manual, accessibility, filesystem, and
 performance gates remain open. M5a provides a partial local-volume entry flow;
-Whole Mac orchestration and Full Disk Access coverage are not implemented.
+Single-root coverage, unknown capacity, discovery retry and source identity checks are implemented; Whole Mac orchestration and Full Disk Access onboarding remain open.
 
 - [Engineering roadmap](docs/ROADMAP.md)
 - [M1 Scanner Core](docs/M1_SCANNER_CORE.md)
 - [M2 Basic macOS App](docs/M2_BASIC_MACOS_APP.md)
 - [M3 Sunburst MVP](docs/M3_SUNBURST_MVP.md)
 - [M4 File Actions](docs/M4_FILE_ACTIONS.md)
+- [M5a Local Volume Coverage](docs/M5_LOCAL_VOLUME_COVERAGE.md)
 - [Visualization benchmark harness](docs/M3_BENCHMARKS.md)
 
 ## Design and documentation

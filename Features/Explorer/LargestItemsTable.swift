@@ -34,9 +34,10 @@ struct LargestItemsTable: View {
                     .fill(HygieiaPalette.separator)
                     .frame(height: 1)
                 HStack(spacing: HygieiaSpacing.small) {
-                    Image(systemName: result.freshness == .current ? "checkmark.circle" : "arrow.clockwise.circle")
-                        .foregroundStyle(result.freshness == .current ? HygieiaPalette.aqua : HygieiaPalette.amber)
-                    Text(result.freshness == .current ? "Scan complete" : "Snapshot updating")
+                    Image(systemName: result.hasWarning ? "exclamationmark.triangle" : "checkmark.circle")
+                        .foregroundStyle(result.hasWarning ? HygieiaPalette.amber : HygieiaPalette.aqua)
+                    Text(result.statusTitle)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     Text(byteCount(rootValue))
                         .monospacedDigit()

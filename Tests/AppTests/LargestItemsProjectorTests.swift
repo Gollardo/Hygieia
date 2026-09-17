@@ -525,7 +525,7 @@ private final class StubPicker: FolderPicking {
 private struct StubVolumeDiscovery: VolumeDiscovering {
     let volumes: [ScanVolume]
 
-    func discoverLocalVolumes() async -> [ScanVolume] { volumes }
+    func discoverLocalVolumes() async throws -> VolumeDiscoverySnapshot { .init(volumes: volumes) }
 }
 
 private final class StubScanner: FileSystemScanner, @unchecked Sendable {

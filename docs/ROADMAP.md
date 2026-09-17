@@ -84,7 +84,7 @@ Roadmap описывает последовательность доказате
 
 ## M5 — Whole Mac Scan
 
-**Текущий статус:** M5a частично реализован: app перечисляет локальные browsable volumes, показывает capacity и ведёт в системный picker, где можно подтвердить сам disk/root или войти в конкретную папку. Whole Mac orchestration, mount-crossing policy, FDA onboarding/coverage, eject/network behavior и signed sandbox acceptance ещё не реализованы и не считаются закрытыми.
+**Текущий статус:** single-root M5a реализован по [M5_LOCAL_VOLUME_COVERAGE.md](M5_LOCAL_VOLUME_COVERAGE.md) и ADR-0008: local-volume discovery с unknown/error/retry, picker, root identity validation, incomplete/unavailable coverage и отчёт Scope & Coverage. Автоматические проверки покрывают replacement/disappearance и APFS disk-image boundary/read-only scan. Whole Mac orchestration, APFS System/Data policy, FDA onboarding и физический eject/stalled I/O остаются открытыми; полный M5 не закрыт.
 
 **Цель:** поддержать понятный scan local volumes/доступного Mac с честным coverage.
 

@@ -102,7 +102,11 @@ public actor ScanCoordinator {
         suspended.forEach { $0.resume(returning: nil) }
     }
 
-    public func finish() throws -> ScanResult {
+    public func finish(sourceUnavailable: Bool = false) throws -> ScanResult {
+        if sourceUnavailable {
+            builder.mark(NodeID(rawValue: 0), adding: [.inaccessible, .incompleteSubtree])
+            recordIssue(.sourceUnavailable, node: NodeID(rawValue: 0), code: nil)
+        }
         if cancelled {
             for index in directoryStates.indices where directoryStates[index] != .finished {
                 builder.mark(NodeID(rawValue: UInt32(index)), adding: [.incompleteSubtree])

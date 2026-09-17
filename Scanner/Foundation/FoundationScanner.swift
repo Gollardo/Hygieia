@@ -82,6 +82,9 @@ private actor FoundationScanControl {
         defer { continuation.finish() }
         do {
             let root = try await backend.inspectRoot(request.rootURL)
+            if let expected = request.expectedRootIdentity, expected != root.identity {
+                throw ScanError.rootChanged
+            }
             let coordinator = try ScanCoordinator(rootURL: request.rootURL, root: root, configuration: configuration, updates: continuation)
             self.coordinator = coordinator
             if cancelled || cancellation.isCancelled { await coordinator.cancel() }
@@ -106,7 +109,14 @@ private actor FoundationScanControl {
                 await coordinator.cancel()
                 throw error
             }
-            return try await coordinator.finish()
+            // Do not start another filesystem call after cancellation. The partial
+            // result already denies Trash and makes no claim about current coverage.
+            if cancellation.isCancelled {
+                await coordinator.cancel()
+                return try await coordinator.finish()
+            }
+            let sourceAvailable = await backend.rootStillMatches(request.rootURL, identity: root.identity)
+            return try await coordinator.finish(sourceUnavailable: !sourceAvailable)
         } catch let error as FileTreeBuildError {
             throw ScanError.builder(error)
         }
@@ -125,17 +135,28 @@ public struct FoundationDirectoryBackend: DirectoryScanningBackend {
             if record.kind == .symbolicLink { throw ScanError.rootIsSymbolicLink }
             guard record.kind == .directory else { throw ScanError.rootIsNotDirectory }
             guard let identity = record.identity else { throw ScanError.rootMetadataFailed(EIO) }
-            guard (try? url.resourceValues(forKeys: [.volumeIsLocalKey]).volumeIsLocal) == true else {
-                throw ScanError.rootIsNotLocalVolume
+            // Metadata I/O stays on the adapter queue, including locality lookup.
+            let isLocal = await withCheckedContinuation { continuation in
+                Self.queue.async {
+                    continuation.resume(returning: try? url.resourceValues(forKeys: [.volumeIsLocalKey]).volumeIsLocal)
+                }
             }
+            guard let isLocal else { throw ScanError.rootLocalityUnknown }
+            guard isLocal else { throw ScanError.rootIsNotLocalVolume }
             let displayName = url.lastPathComponent.isEmpty ? url.path : url.lastPathComponent
             return RootDirectoryRecord(displayName: displayName, identity: identity)
         case .failure(let failure):
             switch failure {
             case .disappeared: throw ScanError.rootMissing
-            case .permissionDenied(let code), .metadataReadFailed(let code): throw ScanError.rootMetadataFailed(code)
+            case .permissionDenied(let code): throw ScanError.rootPermissionDenied(code)
+            case .metadataReadFailed(let code): throw ScanError.rootMetadataFailed(code)
             }
         }
+    }
+
+    public func rootStillMatches(_ url: URL, identity: FileIdentity) async -> Bool {
+        guard case .success(let record) = await readMetadata(url, packageHint: false) else { return false }
+        return record.kind == .directory && record.identity == identity
     }
 
     public func readDirectory(_ request: DirectoryReadRequest) async -> DirectoryReadResult {

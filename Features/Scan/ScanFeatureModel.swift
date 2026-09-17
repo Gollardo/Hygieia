@@ -12,10 +12,24 @@ struct DisplayedScanResult: Sendable {
         case previousAfterFailedRescan
         case partial
         case staleAfterFileAction
+        case sourceUnavailable
     }
 
     let result: ScanResult
     let freshness: Freshness
+
+    var statusTitle: String {
+        switch freshness {
+        case .current: result.hasIncompleteCoverage ? "Coverage incomplete" : "Scan finished"
+        case .partial: "Scan cancelled · partial result"
+        case .sourceUnavailable: "Source unavailable"
+        case .staleWhileScanning: "Rescanning · previous result"
+        case .previousAfterFailedRescan: "Rescan failed · previous result"
+        case .staleAfterFileAction: "File changed · sizes are stale"
+        }
+    }
+
+    var hasWarning: Bool { freshness != .current || result.hasIncompleteCoverage }
 }
 
 struct ScanFailurePresentation: Equatable, Sendable {
@@ -32,6 +46,12 @@ struct ScanFailurePresentation: Equatable, Sendable {
             .init(title: "Symbolic-link roots are not scanned", message: "Choose the actual local folder.")
         case ScanError.rootIsNotLocalVolume:
             .init(title: "Network volumes are not scanned", message: "Choose a local disk or a folder on one.")
+        case ScanError.rootLocalityUnknown:
+            .init(title: "Disk availability could not be verified", message: "Reconnect the disk, then choose the folder again.")
+        case ScanError.rootPermissionDenied:
+            .init(title: "Access to the selected folder was denied", message: "Choose the folder again or check its permissions. This error does not establish Full Disk Access status.")
+        case ScanError.rootChanged:
+            .init(title: "Selected source has changed", message: "The folder or disk no longer matches this snapshot. Choose it again to start a new scan.")
         case ScanError.rootMetadataFailed:
             .init(title: "Folder metadata could not be read", message: "Retry or choose another folder.")
         case ScanError.builder:
@@ -185,6 +205,9 @@ final class ScanFeatureModel {
     private(set) var lastFileActionStatus: LastFileActionStatus?
     private(set) var availableVolumes: [ScanVolume] = []
     private(set) var isDiscoveringVolumes = false
+    private(set) var volumeDiscoveryMessage: String?
+    private var volumeDiscoveryGeneration: UInt64 = 0
+    private var hasDiscoveredVolumes = false
     private(set) var scanTimeEstimate: ScanTimeEstimate?
     private(set) var scanIsFinishing = false
 
@@ -228,8 +251,8 @@ final class ScanFeatureModel {
         self.trash = trash
     }
 
-    var canChooseFolder: Bool { !phase.isActive }
-    var canRescan: Bool { selectedRoot != nil && folderLease != nil && !phase.isActive }
+    var canChooseFolder: Bool { !phase.isActive && phase != .choosingFolder }
+    var canRescan: Bool { selectedRoot != nil && folderLease != nil && canChooseFolder }
     var showsCancel: Bool { phase == .scanning || phase == .cancelling }
     var canCancel: Bool { phase == .scanning }
     var canGoBack: Bool { !(explorer?.backStack.isEmpty ?? true) }
@@ -529,41 +552,75 @@ final class ScanFeatureModel {
     }
 
     func discoverVolumesIfNeeded() async {
-        guard availableVolumes.isEmpty, !isDiscoveringVolumes else { return }
-        isDiscoveringVolumes = true
-        let volumes = await volumeDiscovery.discoverLocalVolumes()
-        guard !Task.isCancelled else { return }
-        availableVolumes = volumes
-        isDiscoveringVolumes = false
+        guard !hasDiscoveredVolumes, !isDiscoveringVolumes else { return }
+        await reloadVolumes()
     }
 
     func refreshVolumes() {
         guard !isDiscoveringVolumes else { return }
+        let requestGeneration = volumeDiscoveryGeneration
+        Task { [weak self] in
+            guard let self, requestGeneration == self.volumeDiscoveryGeneration else { return }
+            await self.reloadVolumes()
+        }
+    }
+
+    private func reloadVolumes() async {
+        guard !isDiscoveringVolumes else { return }
+        volumeDiscoveryGeneration &+= 1
+        let requestGeneration = volumeDiscoveryGeneration
         isDiscoveringVolumes = true
-        Task { [weak self, volumeDiscovery] in
-            let volumes = await volumeDiscovery.discoverLocalVolumes()
-            guard !Task.isCancelled, let self else { return }
-            self.availableVolumes = volumes
-            self.isDiscoveringVolumes = false
+        defer {
+            if requestGeneration == volumeDiscoveryGeneration { isDiscoveringVolumes = false }
+        }
+        do {
+            let snapshot = try await volumeDiscovery.discoverLocalVolumes()
+            guard !Task.isCancelled, requestGeneration == volumeDiscoveryGeneration else { return }
+            availableVolumes = snapshot.volumes
+            hasDiscoveredVolumes = true
+            volumeDiscoveryMessage = snapshot.unreadableVolumeCount > 0
+                ? "Some disks could not be inspected. The list may be incomplete. Refresh or choose a folder."
+                : nil
+        } catch {
+            guard !Task.isCancelled, requestGeneration == volumeDiscoveryGeneration else { return }
+            hasDiscoveredVolumes = true
+            volumeDiscoveryMessage = "Disk list could not be refreshed. Previously listed disks may be unavailable. Retry or choose a folder."
         }
     }
 
     func chooseFolder() {
-        chooseSource(startingAt: nil, prompt: "Choose")
+        chooseSource(volume: nil, prompt: "Choose")
     }
 
     func chooseVolume(_ volume: ScanVolume) {
-        chooseSource(startingAt: volume.url, prompt: "Scan")
+        chooseSource(volume: volume, prompt: "Scan")
     }
 
-    private func chooseSource(startingAt initialDirectory: URL?, prompt: String) {
+    private func chooseSource(volume: ScanVolume?, prompt: String) {
         guard canChooseFolder else { return }
         phaseBeforeChoosing = phase
         phase = .choosingFolder
+        let selectionGeneration = generation
         Task { [weak self] in
-            guard let self else { return }
-            let selection = await self.folderPicker.chooseFolder(startingAt: initialDirectory, prompt: prompt)
-            guard self.phase == .choosingFolder else {
+            guard let self, selectionGeneration == self.generation, self.phase == .choosingFolder else { return }
+            if let volume {
+                do {
+                    let snapshot = try await self.volumeDiscovery.discoverLocalVolumes()
+                    guard selectionGeneration == self.generation, self.phase == .choosingFolder else { return }
+                    guard snapshot.volumes.contains(where: { $0.id == volume.id && $0.url == volume.url }) else {
+                        self.phase = self.phaseBeforeChoosing
+                        self.presentedError = .init(title: "Disk is no longer available", message: "Refresh the disk list or reconnect the disk, then choose it again.")
+                        return
+                    }
+                } catch {
+                    guard selectionGeneration == self.generation, self.phase == .choosingFolder else { return }
+                    self.phase = self.phaseBeforeChoosing
+                    self.presentedError = .init(title: "Disk availability could not be verified", message: "Refresh the disk list or choose a folder explicitly.")
+                    return
+                }
+            }
+            let selection = await self.folderPicker.chooseFolder(startingAt: volume?.url, prompt: prompt)
+            guard selectionGeneration == self.generation, self.phase == .choosingFolder else {
                 selection?.lease.release()
                 return
             }
@@ -784,6 +841,8 @@ final class ScanFeatureModel {
     }
 
     func teardown() {
+        volumeDiscoveryGeneration &+= 1
+        isDiscoveringVolumes = false
         generation &+= 1
         session?.cancel()
         session = nil
@@ -849,7 +908,10 @@ final class ScanFeatureModel {
             projectionPhase = .idle
         }
         phase = .preparing
-        let session = scanner.startScan(.init(rootURL: selection.url))
+        let previousIdentity = keepingPreviousResult
+            ? displayedResult.flatMap { $0.result.tree.identity(for: $0.result.tree.root) }
+            : nil
+        let session = scanner.startScan(.init(rootURL: selection.url, expectedRootIdentity: previousIdentity))
         self.session = session
         phase = .scanning
 
@@ -937,11 +999,11 @@ final class ScanFeatureModel {
         markedTrashItems = [:]
         invalidatedSubtrees = []
 
-        displayedResult = .init(result: result, freshness: result.completion == .cancelled ? .partial : .current)
+        displayedResult = .init(result: result, freshness: result.sourceIsUnavailable ? .sourceUnavailable : (result.completion == .cancelled ? .partial : .current))
         if completedActionRefresh {
             fileActionPhase = .idle
         }
-        phase = result.completion == .cancelled ? .cancelled : (result.issues.totalCount == 0 ? .completed : .completedWithIssues)
+        phase = result.completion == .cancelled ? .cancelled : (result.hasIncompleteCoverage ? .completedWithIssues : .completed)
         explorer = .init(visibleRoot: result.tree.root, selection: .node(result.tree.root), hoveredItem: nil, backStack: [], forwardStack: [])
         beginProjection(for: result.tree, root: result.tree.root, generation: generation)
     }
@@ -1124,7 +1186,7 @@ final class ScanFeatureModel {
         switch freshness {
         case .current: .current
         case .staleWhileScanning: .staleWhileScanning
-        case .previousAfterFailedRescan: .previousAfterFailedRescan
+        case .previousAfterFailedRescan, .sourceUnavailable: .previousAfterFailedRescan
         case .partial: .partial
         case .staleAfterFileAction: .staleAfterFileAction
         }

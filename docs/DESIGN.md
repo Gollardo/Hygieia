@@ -65,6 +65,24 @@ Whole Mac — не синоним «гарантированно прочита�
 
 Запрос доступа не маскируется под системную необходимость и не блокирует обычный folder scan.
 
+### M5a coverage UX
+
+Disk capacity использует reported available capacity; неизвестные или противоречивые
+значения показываются как **Capacity unavailable**, без нулевого progress bar.
+Ошибка discovery отличается от пустого списка; **Refresh Disk List** доступен рядом
+с источниками, folder selection остаётся доступным.
+
+Завершение обхода подписывается **Scan finished**, при неполном покрытии — **Coverage
+incomplete**. Cancelled, stale и source unavailable имеют отдельные текстовые статусы
+и warning icon. Источник, исчезнувший или изменившийся к концу scan, оставляет
+просматриваемый incomplete snapshot; Trash для него недоступен. Rescan не принимает
+новый inode по прежнему пути: требуется повторный явный выбор.
+
+**Scope & Coverage** открывает scrollable report: исходный root (не drill-down root),
+device evidence, начало/конец scan, no-follow/same-device policy, категории issues и
+не более 20 retained примеров. Доступ к неувиденным данным и процент покрытия не
+выдумываются; permission denied не трактуется как доказанный FDA status.
+
 ## 5. Состояния scan
 
 Feature state должен различать:

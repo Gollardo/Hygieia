@@ -267,6 +267,24 @@ M2 использует App Sandbox и `com.apple.security.files.user-selected.r
 
 M2 sandbox policy принята ADR-0003 и уточнена для M4 ADR-0005. Открыты final signing/bundle/distribution решения и Whole Mac/FDA policy M5.
 
+### M5a: single-root coverage and availability
+
+[ADR-0008](adr/ADR-0008-single-volume-coverage.md) и [M5_LOCAL_VOLUME_COVERAGE.md](M5_LOCAL_VOLUME_COVERAGE.md)
+уточняют текущий single-root flow без расширения sandbox access. `VolumeDiscovering`
+возвращает список и число unreadable metadata records либо явную ошибку. Unknown
+capacity остаётся optional; discovery не является authority для чтения дерева.
+
+Rescan передаёт `expectedRootIdentity` из предыдущего snapshot; замена корня требует
+нового явного выбора. Перед publication scanner проверяет no-follow identity корня.
+При её потере/изменении coordinator публикует валидный incomplete snapshot с
+`sourceUnavailable`, а feature запрещает Trash через non-current freshness.
+`ScanResult.hasIncompleteCoverage` учитывает completion, issues и root flags.
+Это проверка на момент scan, а не наблюдение за подключёнными устройствами.
+
+Coverage report читает исходный root, device identity, timestamps и bounded issue
+samples из результата. Нового дерева, индекса или guessed FDA state не создаётся.
+Whole Mac orchestration и APFS System/Data overlap policy остаются открытыми.
+
 ## 15. Memory и performance strategy
 
 Основные правила:

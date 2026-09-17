@@ -123,6 +123,15 @@ Empty state не дублирует wordmark внутри content: native window
 
 Initial scan использует ту же spatial scene, но меняет задачу: показывает selected root, committed items, completed/queued folders, reported bytes, elapsed time, честный approximate ETA range после стабилизации, indeterminate progress и Cancel. Движущийся progress/sweep сохраняется, потому что заранее известного total нет. Footer progress скрыт, пока ещё нет предыдущего результата; при rescan он остаётся видимым поверх существующего Explorer.
 
+### M5a status and coverage
+
+M5a reuses the source panel, native buttons, semantic amber warning/icon and aqua
+finished state. Unknown capacity has text only, with no fabricated meter. Coverage
+warnings take precedence over a current snapshot's completion color in both the
+field header and list footer. **Scope & Coverage** is a native button/popover with a
+bounded scrollable report; root paths wrap and are selectable. No new tokens,
+fonts, per-node views or animations are introduced. See the M5 contract for QA evidence.
+
 ## 7. Accessibility and motion
 
 - Contents остаётся синхронизированным list alternative и показывает только direct children текущего visual root.

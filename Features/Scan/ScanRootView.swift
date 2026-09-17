@@ -47,7 +47,7 @@ struct ScanRootView: View {
                     brandedState(
                         scene: .empty,
                         title: "See the space inside your Mac.",
-                        description: "Choose a disk for the full picture, or narrow the scan to a specific folder. Hygieia remains read-only until you decide otherwise."
+                        description: "Choose a local disk or a specific folder. Access restrictions and other mounted volumes may limit coverage. Hygieia remains read-only until you decide otherwise."
                     )
                 }
             }
@@ -263,10 +263,18 @@ struct ScanRootView: View {
                 }
             }
 
-            if model.availableVolumes.isEmpty, !model.isDiscoveringVolumes {
-                Text("No local disks are currently available. You can still choose a folder.")
-                    .font(.callout)
-                    .foregroundStyle(HygieiaPalette.textSecondary)
+            if let message = model.volumeDiscoveryMessage {
+                Label(message, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(HygieiaPalette.amber)
+            }
+
+            if model.availableVolumes.isEmpty {
+                if !model.isDiscoveringVolumes, model.volumeDiscoveryMessage == nil {
+                    Text("No local disks are currently available. You can still choose a folder.")
+                        .font(.callout)
+                        .foregroundStyle(HygieiaPalette.textSecondary)
+                }
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -281,6 +289,10 @@ struct ScanRootView: View {
                 .frame(maxHeight: 196)
                 .scrollIndicators(.hidden)
             }
+
+            Button("Refresh Disk List", action: model.refreshVolumes)
+                .disabled(model.isDiscoveringVolumes)
+                .accessibilityIdentifier("refreshDiskList")
 
             Button(action: model.chooseFolder) {
                 Label("Choose a Folder…", systemImage: "folder.badge.plus")
@@ -319,10 +331,13 @@ struct ScanRootView: View {
                 }
 
                 HStack(spacing: HygieiaSpacing.small) {
-                    ProgressView(value: volume.totalCapacity == 0 ? 0 : Double(volume.usedCapacity) / Double(volume.totalCapacity))
-                        .progressViewStyle(.linear)
-                        .tint(HygieiaPalette.glacier)
-                    Text(volumeCapacityDescription(volume))
+                    if let fraction = volume.usedFraction {
+                        ProgressView(value: fraction)
+                            .progressViewStyle(.linear)
+                            .tint(HygieiaPalette.glacier)
+                            .accessibilityHidden(true)
+                    }
+                    Text(volume.capacityDescription)
                         .font(.caption)
                         .monospacedDigit()
                         .foregroundStyle(HygieiaPalette.textSecondary)
@@ -335,13 +350,9 @@ struct ScanRootView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Scan \(volume.name), \(volumeCapacityDescription(volume))")
-        .help("Scan the whole disk, or choose a folder inside it")
-    }
-
-    private func volumeCapacityDescription(_ volume: ScanVolume) -> String {
-        guard volume.totalCapacity > 0 else { return "Capacity unavailable" }
-        return "\(byteCount(volume.availableCapacity)) free of \(byteCount(volume.totalCapacity))"
+        .accessibilityLabel("Scan \(volume.name), \(volume.capacityDescription)")
+        .help("Choose this disk or a folder inside it. Other mounted volumes are not traversed.")
+        .disabled(!model.canChooseFolder)
     }
 
     private var scanProgress: some View {
@@ -507,9 +518,9 @@ private struct ExplorerContextBar: View {
 
             if let result = model.displayedResult {
                 HygieiaStatusPill(
-                    systemImage: result.freshness == .current ? "checkmark.circle" : "arrow.clockwise.circle",
+                    systemImage: result.hasWarning ? "exclamationmark.triangle" : "checkmark.circle",
                     title: statusTitle(result),
-                    tint: result.freshness == .current ? HygieiaPalette.aqua : HygieiaPalette.amber
+                    tint: result.hasWarning ? HygieiaPalette.amber : HygieiaPalette.aqua
                 )
             }
         }
@@ -522,8 +533,10 @@ private struct ExplorerContextBar: View {
     }
 
     private func statusTitle(_ result: DisplayedScanResult) -> String {
-        let size = byteCount(model.sunburstProjection?.nodes.first?.value ?? 0)
-        return result.freshness == .current ? "Scan complete · \(size) analyzed" : "Refreshing · displayed sizes are stale"
+        let tree = result.result.tree
+        let node = tree.node(for: model.visibleRoot ?? tree.root) ?? tree[tree.root]
+        let size = byteCount(model.metric == .logical ? node.logicalSize : node.allocatedSize)
+        return "\(result.statusTitle) · \(size) observed"
     }
 }
 

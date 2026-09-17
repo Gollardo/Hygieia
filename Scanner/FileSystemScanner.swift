@@ -11,7 +11,11 @@ public protocol FileSystemScanner: Sendable {
 
 public struct ScanRequest: Sendable {
     public let rootURL: URL
-    public init(rootURL: URL) { self.rootURL = rootURL }
+    public let expectedRootIdentity: FileIdentity?
+    public init(rootURL: URL, expectedRootIdentity: FileIdentity? = nil) {
+        self.rootURL = rootURL
+        self.expectedRootIdentity = expectedRootIdentity
+    }
 }
 
 public struct DirectoryReadRequest: Sendable {
@@ -103,6 +107,7 @@ public enum ScanIssueKind: String, CaseIterable, Hashable, Sendable {
     case volumeBoundary
     case repeatedDirectoryIdentity
     case hardLinksOutsideRoot
+    case sourceUnavailable
 }
 
 public struct ScanIssueSample: Sendable {
@@ -126,6 +131,14 @@ public struct ScanResult: Sendable {
     public let issues: ScanIssueSummary
     public let startedAt: Date
     public let finishedAt: Date
+
+    public var sourceIsUnavailable: Bool { (issues.counts[.sourceUnavailable] ?? 0) > 0 }
+
+    /// Describes observed coverage within this root, never all data on the Mac.
+    public var hasIncompleteCoverage: Bool {
+        completion == .cancelled || issues.totalCount > 0
+            || tree[tree.root].flags.contains(.incompleteSubtree)
+    }
 
     public init(
         rootURL: URL,
@@ -153,6 +166,9 @@ public enum ScanError: Error, Equatable, Sendable {
     case rootIsNotDirectory
     case rootIsSymbolicLink
     case rootIsNotLocalVolume
+    case rootLocalityUnknown
+    case rootPermissionDenied(Int32)
+    case rootChanged
     case rootMetadataFailed(Int32)
     case builder(FileTreeBuildError)
 }
